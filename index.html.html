@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Laboratorio Dimensional Interactivo</title>
+    <style>
+        /* --- ESTILOS GLOBALES Y DE PESTAÑAS --- */
+        @import url('https://fonts.googleapis.com/css2?family=Special+Elite&display=swap');
+        
+        :root {
+            --color-elliptic: #D90082; --color-simple: #D22D1E; --color-tachyons: #FDE831;
+            --color-unstable: #3197D6; --color-ultrahyperbolic: #368F2C; --color-we-are-here: #FFFFFF;
+            --border-color: #1a1a1a; --bg-color: #1e1e22; --text-color: #e0e0e0;
+        }
+
+        body {
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Special Elite', monospace;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .tab-nav {
+            display: flex;
+            justify-content: center;
+            padding: 10px;
+            background: #111;
+            border-bottom: 2px solid #444;
+            flex-shrink: 0;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-family: inherit;
+            cursor: pointer;
+            border: 1px solid #555;
+            background: #333;
+            color: #ccc;
+            margin: 0 5px;
+            border-radius: 5px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .tab-button:hover { background-color: #444; }
+        .tab-button.active { background-color: var(--color-unstable); color: #fff; border-color: #fff; }
+
+        .tab-content { flex-grow: 1; position: relative; }
+        .tab-pane {
+            display: none; /* Oculto por defecto */
+            width: 100%; height: 100%;
+            position: absolute;
+            top: 0; left: 0;
+        }
+        .tab-pane.active { display: block; /* Visible cuando está activo */ }
+
+        /* --- VISTA 2D: ESTILOS ESPECÍFICOS --- */
+        #view-2d {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1500px;
+            overflow: auto;
+            padding: 2rem;
+            box-sizing: border-box;
+        }
+        #view-2d main { display: flex; gap: 2rem; align-items: center; }
+        #view-2d .scene { width: 720px; height: 600px; transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1); }
+        #view-2d .chart-container { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transform: rotateX(55deg) rotateZ(-35deg); transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1); }
+        #view-2d .scene:hover .chart-container { transform: rotateX(0deg) rotateZ(0deg); }
+        #view-2d .grid-surface { position: absolute; width: 100%; height: 100%; background-image: linear-gradient(to right, #888 1px, transparent 1px), linear-gradient(to bottom, #888 1px, transparent 1px); background-size: 16.66% 20%; transform: translateZ(-2px); box-shadow: 0 0 50px 20px rgba(0,0,0,0.5); border: 3px solid var(--border-color); }
+        #view-2d .region { position: absolute; display: flex; justify-content: center; align-items: center; text-align: center; font-size: 1.1rem; color: #000; border: 1px solid rgba(0,0,0,0.5); transition: transform 0.4s ease, box-shadow 0.4s ease; cursor: pointer; overflow: hidden; transform-style: preserve-3d; }
+        #view-2d .region:hover { transform: translateZ(40px); box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+        #view-2d .region span { text-shadow: 0 0 5px white, 0 0 10px white; transform: translateZ(1px); }
+        #view-2d .elliptic-v { background-color: var(--color-elliptic); top: 0; left: 0; width: 16.66%; height: 80%; }
+        #view-2d .elliptic-h { background-color: var(--color-elliptic); top: 80%; left: 0; width: 100%; height: 20%; }
+        #view-2d .unstable-v { background-color: var(--color-unstable); top: 20%; left: 16.66%; width: 16.67%; height: 20%; }
+        #view-2d .tachyons { background-color: var(--color-tachyons); top: 40%; left: 16.66%; width: 16.67%; height: 20%; }
+        #view-2d .simple { background-color: var(--color-simple); top: 60%; left: 16.66%; width: 33.34%; height: 20%; }
+        #view-2d .we-are-here { background-color: var(--color-we-are-here); top: 60%; left: 50%; width: 16.67%; height: 20%;}
+        #view-2d .unstable-h { background-color: var(--color-unstable); top: 60%; left: 66.67%; width: 16.67%; height: 20%; }
+        #view-2d .ultrahyperbolic { background-color: var(--color-ultrahyperbolic); top: 20%; left: 33.33%; width: 66.67%; height: 60%; }
+        #view-2d .info-panel { width: 350px; padding: 1.5rem; background: rgba(40, 40, 42, 0.8); border: 2px solid #888; backdrop-filter: blur(10px); border-radius: 10px; transition: border-color 0.4s ease; }
+        #view-2d .info-panel h2 { margin-top: 0; font-size: 1.8rem; }
+        #view-2d .info-panel p { font-size: 1.1rem; line-height: 1.6; }
+        #view-2d .axis-label, #view-2d .tick { position: absolute; color: #ccc; background: #00000099; padding: 2px 5px; border-radius: 3px; }
+        #view-2d .y-axis-label { transform: rotate(-90deg) translateZ(5px); left: -110px; top: 250px; }
+        #view-2d .x-axis-label { transform: translateZ(5px); bottom: -40px; left: 50%; transform: translateX(-50%); }
+        #view-2d .y-tick { left: -30px; transform: translateZ(5px); }
+        #view-2d .x-tick { bottom: -30px; transform: translateZ(5px); }
+        #view-2d .p-5 {top: 8.33%;} #view-2d .p-4 {top: 25%;} #view-2d .p-3 {top: 41.66%;} #view-2d .p-2 {top: 58.33%;} #view-2d .p-1 {top: 75%;} #view-2d .p-0 {top: 91.66%;}
+        #view-2d .p-0x {left: 8.33%;} #view-2d .p-1x {left: 25%;} #view-2d .p-2x {left: 41.66%;} #view-2d .p-3x {left: 58.33%;} #view-2d .p-4x {left: 75%;} #view-2d .p-5x {left: 91.66%;}
+        
+        /* --- VISTA 3D: ESTILOS ESPECÍFICOS --- */
+        #view-3d { position: relative; }
+        #view-3d-canvas-container { width: 100%; height: 100%; }
+        #view-3d .info-panel { position: absolute; top: 20px; left: 20px; width: 300px; padding: 1rem; background: rgba(20, 20, 20, 0.8); border: 1px solid #555; backdrop-filter: blur(10px); border-radius: 8px; pointer-events: none; transition: border-color 0.4s; }
+        #view-3d .info-panel h2 { margin-top: 0; font-size: 1.5rem; color: #eee; }
+        #view-3d .info-panel p { font-size: 1rem; line-height: 1.5; color: #ccc; }
+        #view-3d #instructions { position: absolute; bottom: 10px; width: 100%; text-align: center; color: #aaa; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+    <div class="tab-nav">
+        <button class="tab-button" data-tab="view-2d">Visualización Interactiva 2D</button>
+        <button class="tab-button active" data-tab="view-3d">Simulación de Física 3D</button>
+    </div>
+
+    <div class="tab-content">
+        <!-- Pestaña 1: Visualización 2D -->
+        <div id="view-2d" class="tab-pane">
+            <main>
+                <div class="scene">
+                    <div class="chart-container">
+                        <div class="grid-surface"></div>
+                        <div class="axis-label y-axis-label">Number of time dimensions</div>
+                        <div class="axis-label x-axis-label">Number of spatial dimensions</div>
+                        <div class="tick y-tick p-5">5</div><div class="tick y-tick p-4">4</div><div class="tick y-tick p-3">3</div><div class="tick y-tick p-2">2</div><div class="tick y-tick p-1">1</div><div class="tick y-tick p-0">0</div>
+                        <div class="tick x-tick p-0x">0</div><div class="tick x-tick p-1x">1</div><div class="tick x-tick p-2x">2</div><div class="tick x-tick p-3x">3</div><div class="tick x-tick p-4x">4</div><div class="tick x-tick p-5x">5</div>
+                        <div class="region elliptic-v" data-title="UNPREDICTABLE (elliptic)" data-info="Con 0 dimensiones espaciales, el tiempo es un bucle. El futuro y el pasado son indistinguibles." data-type="elliptic"><span>UNPREDICTABLE<br/>(elliptic)</span></div>
+                        <div class="region elliptic-h" data-title="UNPREDICTABLE (elliptic)" data-info="Con 0 dimensiones temporales, no hay cambio. El universo es una fotografía estática." data-type="elliptic"></div>
+                        <div class="region unstable-v" data-title="UNSTABLE" data-info="En 1D espacial y >3D temporales, los átomos son inestables y la materia no puede formarse." data-type="unstable"><span>UNSTABLE</span></div>
+                        <div class="region ultrahyperbolic" data-title="UNPREDICTABLE (ultrahyperbolic)" data-info="Con múltiples dimensiones temporales, la realidad es un fractal de posibilidades." data-type="ultrahyperbolic"><span>UNPREDICTABLE<br/>(ultrahyperbolic)</span></div>
+                        <div class="region tachyons" data-title="Tachyons only" data-info="Solo existen los taquiones, partículas que viajan más rápido que la luz y hacia atrás en el tiempo." data-type="tachyons"><span>Tachyons<br/>only</span></div>
+                        <div class="region simple" data-title="TOO SIMPLE" data-info="Las leyes físicas son demasiado simples para la complejidad. No hay gravedad estable en 2D." data-type="simple"><span>TOO<br/>SIMPLE</span></div>
+                        <div class="region we-are-here" data-title="We are here" data-info="El punto justo. 3D espaciales y 1D temporal permiten una física rica pero estable. Nuestro hogar." data-type="we-are-here"><span>We are<br/>here</span></div>
+                        <div class="region unstable-h" data-title="UNSTABLE" data-info="Con >3 dimensiones espaciales, las órbitas son inestables. Todo se desmoronaría." data-type="unstable"></div>
+                    </div>
+                </div>
+                <div class="info-panel">
+                    <h2 class="info-title">Visualizador 2D</h2>
+                    <p class="info-text">Pasa el ratón sobre una región para explorarla. Pasa el ratón sobre el gráfico para aplanarlo.</p>
+                </div>
+            </main>
+        </div>
+
+        <!-- Pestaña 2: Simulación 3D -->
+        <div id="view-3d" class="tab-pane active">
+            <div id="view-3d-canvas-container"></div>
+            <div class="info-panel">
+                <h2 id="info-title-3d">Laboratorio Dimensional</h2>
+                <p id="info-text-3d">Pasa el ratón sobre una región para inspeccionarla. Haz clic y arrastra para rotar. Usa la rueda del ratón para hacer zoom.</p>
+            </div>
+            <div id="instructions">Haz clic y arrastra para rotar | Rueda del ratón para zoom</div>
+        </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.164.1/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.164.1/examples/jsm/" } }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // --- LÓGICA DE LAS PESTAÑAS ---
+        const tabs = document.querySelectorAll('.tab-button');
+        const panes = document.querySelectorAll('.tab-pane');
+        let is3DInitialized = false;
+        let animationFrameId;
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                panes.forEach(p => p.classList.remove('active'));
+
+                tab.classList.add('active');
+                const targetPane = document.getElementById(tab.dataset.tab);
+                targetPane.classList.add('active');
+
+                if (tab.dataset.tab === 'view-3d') {
+                    if (!is3DInitialized) {
+                        initThreeJS();
+                        is3DInitialized = true;
+                    }
+                    start3DAnimation();
+                } else {
+                    stop3DAnimation();
+                }
+            });
+        });
+
+        // --- LÓGICA DE LA VISTA 2D ---
+        const chart2D = document.querySelector('#view-2d .chart-container');
+        if (chart2D) {
+            const infoTitle2D = document.querySelector('#view-2d .info-title');
+            const infoText2D = document.querySelector('#view-2d .info-text');
+            const infoPanel2D = document.querySelector('#view-2d .info-panel');
+            chart2D.addEventListener('mouseover', (event) => {
+                const region = event.target.closest('.region');
+                if (region && region.dataset.title) {
+                    infoTitle2D.textContent = region.dataset.title;
+                    infoText2D.textContent = region.dataset.info;
+                    infoPanel2D.style.borderColor = `var(--color-${region.dataset.type})`;
+                }
+            });
+            chart2D.addEventListener('mouseleave', () => {
+                infoTitle2D.textContent = 'Visualizador 2D';
+                infoText2D.textContent = 'Pasa el ratón sobre una región para explorarla. Pasa el ratón sobre el gráfico para aplanarlo.';
+                infoPanel2D.style.borderColor = '#888';
+            });
+        }
+
+
+        // --- LÓGICA DE LA SIMULACIÓN 3D ---
+        let scene, camera, renderer, controls, gridGroup, raycaster, pointer, intersectedObject;
+        
+        function initThreeJS() {
+            const container = document.getElementById('view-3d-canvas-container');
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(0, 0, 15);
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            
+            const infoPanel = {
+                title: document.getElementById('info-title-3d'),
+                text: document.getElementById('info-text-3d'),
+                panel: document.querySelector('#view-3d .info-panel'),
+                defaultTitle: 'Laboratorio Dimensional',
+                defaultText: 'Pasa el ratón sobre una región para inspeccionarla. Haz clic y arrastra para rotar. Usa la rueda del ratón para hacer zoom.'
+            };
+
+            const regions = { /* ... (datos de regiones) ... */
+                'elliptic': { color: 0xD90082, title: 'UNPREDICTABLE (elliptic)', info: 'Las partículas se mueven en bucles de tiempo cerrados.' },
+                'unstable': { color: 0x3197D6, title: 'UNSTABLE', info: 'Las partículas vibran caóticamente y se desintegran.' },
+                'tachyons': { color: 0xFDE831, title: 'Tachyons only', info: 'Partículas superlumínicas que viajan hacia atrás en el tiempo.' },
+                'simple': { color: 0xD22D1E, title: 'TOO SIMPLE', info: 'Interacciones restringidas a 1D o 2D, impidiendo la complejidad.' },
+                'we-are-here': { color: 0xFFFFFF, title: 'We are here', info: 'Partículas en órbitas estables y predecibles. Nuestro universo.' },
+                'ultrahyperbolic': { color: 0x368F2C, title: 'UNPREDICTABLE (ultrahyperbolic)', info: 'Un atractor extraño gobierna el movimiento de las partículas.' }
+            };
+
+            gridGroup = new THREE.Group();
+            raycaster = new THREE.Raycaster();
+            pointer = new THREE.Vector2();
+            const boxGeometry = new THREE.BoxGeometry(2, 2, 0.1);
+
+            function createRegion(name, x, y, w, h) {
+                const material = new THREE.MeshStandardMaterial({ color: regions[name].color, transparent: true, opacity: 0.6 });
+                const mesh = new THREE.Mesh(boxGeometry, material);
+                mesh.scale.set(w, h, 1);
+                mesh.position.set( (x + w / 2 - 3) * 2, ( -y - h / 2 + 2.5) * 2, 0 );
+                mesh.userData = { name, ...regions[name], particles: setupParticles(w*2, h*2, regions[name].color) };
+                mesh.add(mesh.userData.particles.points);
+                gridGroup.add(mesh);
+            }
+            
+            function setupParticles(width, height, color) {
+                const particleCount = 500;
+                const geometry = new THREE.BufferGeometry();
+                const positions = new Float32Array(particleCount * 3);
+                for (let i = 0; i < particleCount; i++) {
+                    positions[i * 3] = (Math.random() - 0.5) * width;
+                    positions[i * 3 + 1] = (Math.random() - 0.5) * height;
+                    positions[i * 3 + 2] = (Math.random() - 0.5) * 2;
+                }
+                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                const material = new THREE.PointsMaterial({ color: color, size: 0.08, blending: THREE.AdditiveBlending });
+                return { points: new THREE.Points(geometry, material), positions };
+            }
+
+            // Crear regiones 3D...
+            createRegion('elliptic', 0, 0, 1, 4); createRegion('elliptic', 0, 4, 6, 1); createRegion('unstable', 1, 1, 1, 1);
+            createRegion('tachyons', 1, 2, 1, 1); createRegion('simple', 1, 3, 2, 1); createRegion('we-are-here', 3, 3, 1, 1);
+            createRegion('unstable', 4, 3, 1, 1); createRegion('ultrahyperbolic', 2, 1, 4, 2);
+            scene.add(gridGroup);
+            
+            scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+            dirLight.position.set(5, 10, 7.5);
+            scene.add(dirLight);
+
+            function onPointerMove(event) {
+                const rect = renderer.domElement.getBoundingClientRect();
+                pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            }
+            window.addEventListener('pointermove', onPointerMove);
+
+            function updateRaycaster() {
+                raycaster.setFromCamera(pointer, camera);
+                const intersects = raycaster.intersectObjects(gridGroup.children);
+                if (intersects.length > 0) {
+                    if (intersectedObject !== intersects[0].object) {
+                        if (intersectedObject) { intersectedObject.material.opacity = 0.6; intersectedObject.scale.z = 1; }
+                        intersectedObject = intersects[0].object;
+                        intersectedObject.material.opacity = 0.9;
+                        intersectedObject.scale.z = 2;
+                        infoPanel.title.textContent = intersectedObject.userData.title;
+                        infoPanel.text.textContent = intersectedObject.userData.info;
+                        infoPanel.panel.style.borderColor = `#${intersectedObject.material.color.getHexString()}`;
+                    }
+                } else {
+                    if (intersectedObject) { intersectedObject.material.opacity = 0.6; intersectedObject.scale.z = 1; }
+                    intersectedObject = null;
+                    infoPanel.title.textContent = infoPanel.defaultTitle;
+                    infoPanel.text.textContent = infoPanel.defaultText;
+                    infoPanel.panel.style.borderColor = '#555';
+                }
+            }
+
+            function updateParticles() {
+                for (const region of gridGroup.children) {
+                    const { name, particles } = region.userData;
+                    const positions = particles.positions;
+                    const bounds = { x: (2 * region.scale.x) / 2, y: (2 * region.scale.y) / 2, z: 1 };
+                    for (let i = 0; i < positions.length / 3; i++) {
+                        let p = new THREE.Vector3(positions[i*3], positions[i*3+1], positions[i*3+2]);
+                        // Lógica de simulación (switch case) ...
+                         switch(name) {
+                            case 'ultrahyperbolic': { const [x,y,z] = [p.x, p.y, p.z]; const s = 10, r = 28, b = 8/3; p.x += 0.05 * s * (y - x); p.y += 0.05 * (x * (r - z/5) - y); p.z += 0.05 * (x * y - b * z); break; }
+                            case 'unstable': { if (Math.random() > 0.995) { p.set((Math.random()-0.5)*bounds.x, (Math.random()-0.5)*bounds.y, (Math.random()-0.5)*bounds.z); } else { p.x += (Math.random() - 0.5) * 0.5; p.y += (Math.random() - 0.5) * 0.5; p.z += (Math.random() - 0.5) * 0.5; } break; }
+                            case 'tachyons': { p.x += 0.5; if (p.x > bounds.x) p.x = -bounds.x; break; }
+                            case 'simple': { p.x += (Math.random() - 0.5) * 0.1; p.z = 0; break; }
+                            case 'we-are-here': { let r = Math.sqrt(p.x*p.x+p.y*p.y), a = Math.atan2(p.y,p.x); a += 0.5 / (r+1); p.x=r*Math.cos(a); p.y=r*Math.sin(a); break; }
+                            case 'elliptic': { let r=Math.sqrt(p.x*p.x+p.z*p.z), a=Math.atan2(p.z,p.x)+0.05; p.x=r*Math.cos(a); p.z=r*Math.sin(a); break; }
+                        }
+                        if (Math.abs(p.x) > bounds.x) p.x *= -0.99; if (Math.abs(p.y) > bounds.y) p.y *= -0.99; if (Math.abs(p.z) > bounds.z) p.z *= -0.99;
+                        positions[i*3] = p.x; positions[i*3+1] = p.y; positions[i*3+2] = p.z;
+                    }
+                    particles.points.geometry.attributes.position.needsUpdate = true;
+                }
+            }
+            
+            function animate() {
+                animationFrameId = requestAnimationFrame(animate);
+                controls.update();
+                updateRaycaster();
+                updateParticles();
+                renderer.render(scene, camera);
+            }
+            
+            window.addEventListener('resize', () => {
+                const w = container.clientWidth; const h = container.clientHeight;
+                camera.aspect = w / h; camera.updateProjectionMatrix();
+                renderer.setSize(w, h);
+            });
+            
+            animate(); // Inicia la animación
+        }
+        
+        function start3DAnimation() {
+            if (animationFrameId === null && is3DInitialized) {
+                 renderer.setAnimationLoop(function animate() {
+                    animationFrameId = requestAnimationFrame(animate);
+                    controls.update(); updateRaycaster(); updateParticles();
+                    renderer.render(scene, camera);
+                });
+            }
+        }
+
+        function stop3DAnimation() {
+            if (animationFrameId !== null) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+                 if (renderer) renderer.setAnimationLoop(null);
+            }
+        }
+        
+        // Inicializar la pestaña activa por defecto
+        document.querySelector('.tab-button.active').click();
+
+    </script>
+</body>
+</html>
