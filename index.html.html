@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador Dimensional 3D Fractal</title>
+    <style>
+        /* --- Propiedades personalizadas para animaciones fluidas --- */
+        @property --angle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+        @property --glow-opacity { syntax: '<number>'; initial-value: 0; inherits: false; }
+
+        /* --- Configuración General --- */
+        @import url('https://fonts.googleapis.com/css2?family=Special+Elite&display=swap');
+
+        :root {
+            --color-elliptic: #D90082;
+            --color-simple: #D22D1E;
+            --color-tachyons: #FDE831;
+            --color-unstable: #3197D6;
+            --color-ultrahyperbolic: #368F2C;
+            --color-we-are-here: #FFFFFF;
+            --border-color: #1a1a1a;
+            --text-color: #000000;
+            --bg-color: #2a2a2e;
+        }
+
+        body {
+            display: grid;
+            place-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle, #333 1px, transparent 1px);
+            background-size: 20px 20px;
+            font-family: 'Special Elite', monospace;
+            color: #fff;
+            perspective: 1500px; /* La "cámara" para la escena 3D */
+        }
+
+        main {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        /* --- Escena y Contenedor 3D --- */
+        .scene {
+            width: 720px;
+            height: 600px;
+            transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transform: rotateX(55deg) rotateZ(-35deg);
+            transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        .scene:hover .chart-container {
+            transform: rotateX(0deg) rotateZ(0deg);
+        }
+
+        .grid-surface {
+            position: absolute;
+            width: 100%; height: 100%;
+            background-image:
+                linear-gradient(to right, #888 1px, transparent 1px),
+                linear-gradient(to bottom, #888 1px, transparent 1px);
+            background-size: 16.66% 20%;
+            transform: translateZ(-2px); /* Pone la rejilla ligeramente detrás */
+            box-shadow: 0 0 50px 20px rgba(0,0,0,0.5);
+            border: 3px solid var(--border-color);
+        }
+
+        /* --- Regiones del Gráfico --- */
+        .region {
+            position: absolute;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            font-size: 1.1rem;
+            color: var(--text-color);
+            border: 1px solid rgba(0,0,0,0.5);
+            transition: transform 0.4s ease, box-shadow 0.4s ease;
+            cursor: pointer;
+            overflow: hidden;
+            transform-style: preserve-3d;
+        }
+        .region:hover {
+            transform: translateZ(40px); /* Hace que la región "flote" hacia el usuario */
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+        }
+        .region span { text-shadow: 0 0 5px white, 0 0 10px white; transform: translateZ(1px); }
+
+        /* --- Posiciones y Colores --- */
+        .elliptic-v { background-color: var(--color-elliptic); top: 0; left: 0; width: 16.66%; height: 80%; }
+        .elliptic-h { background-color: var(--color-elliptic); top: 80%; left: 0; width: 100%; height: 20%; }
+        .unstable-v { background-color: var(--color-unstable); top: 20%; left: 16.66%; width: 16.67%; height: 20%; }
+        .tachyons { background-color: var(--color-tachyons); top: 40%; left: 16.66%; width: 16.67%; height: 20%; }
+        .simple { background-color: var(--color-simple); top: 60%; left: 16.66%; width: 33.34%; height: 20%; }
+        .we-are-here { background-color: var(--color-we-are-here); top: 60%; left: 50%; width: 16.67%; height: 20%;}
+        .unstable-h { background-color: var(--color-unstable); top: 60%; left: 66.67%; width: 16.67%; height: 20%; }
+        .ultrahyperbolic { background-color: var(--color-ultrahyperbolic); top: 20%; left: 33.33%; width: 66.67%; height: 60%; }
+
+        /* --- Animaciones Específicas Mejoradas --- */
+        .elliptic-v, .elliptic-h { animation: glitch-border 6s infinite steps(1,start); }
+        .unstable-v, .unstable-h { animation: nervous-shake 0.4s infinite; }
+        .tachyons { animation: tachyon-pulse 1.5s infinite; }
+        .simple::after { content: ''; position: absolute; inset: 0; box-shadow: inset 0 0 20px 10px #D22D1E; animation: breathe 3s infinite ease-in-out; }
+        .we-are-here { transition: --glow-opacity 0.4s; --glow-opacity: 0.5; }
+        .we-are-here:hover { --glow-opacity: 1; }
+        .we-are-here::before { content: ''; position: absolute; inset: -5px; background: conic-gradient(from var(--angle), transparent, white, transparent); animation: spin 4s linear infinite; opacity: var(--glow-opacity); }
+
+        /* Animación FRACTAL con profundidad */
+        .ultrahyperbolic::before, .ultrahyperbolic::after { content: ''; position: absolute; inset: 0; background-size: 200% 200%; }
+        .ultrahyperbolic::before { background-image: radial-gradient(circle at 30% 30%, #fff5, transparent), linear-gradient(var(--angle), #2E7D32, #A5D6A7); animation: fractal-zoom 15s linear infinite alternate; }
+        .ultrahyperbolic::after { background-image: conic-gradient(from calc(var(--angle) * -0.5), #1B5E20, #81C784, #1B5E20); opacity: 0.7; animation: fractal-spin 25s linear infinite; }
+
+        @keyframes fractal-zoom { 100% { transform: scale(1.5) rotate(360deg); background-position: 100% 100%; } }
+        @keyframes fractal-spin { 100% { --angle: 360deg; } }
+        @keyframes glitch-border { 0%{border:1px solid #000;} 10%{border:3px solid red; transform:translateX(-3px);} 20%{border:1px solid #000; transform:translateX(0);} 50%{border:3px solid blue; transform:translate(3px, 3px) skew(-5deg);} 51%{border:1px solid #000; transform:translate(0,0) skew(0);} 100%{border:1px solid #000;} }
+        @keyframes nervous-shake { 0%{transform:translate(0,0)} 25%{transform:translate(2px,-1px)} 50%{transform:translate(-2px,1px)} 75%{transform:translate(1px,2px)} 100%{transform:translate(0,0)} }
+        @keyframes tachyon-pulse { 0%, 100% { box-shadow: inset 0 0 20px #a39521; } 50% { box-shadow: inset 0 0 40px 10px #fff; } }
+        @keyframes breathe { 50% { box-shadow: inset 0 0 40px 20px #00000099; } }
+        @keyframes spin { 100% { --angle: 360deg; } }
+        
+        /* --- Panel de Información --- */
+        .info-panel {
+            width: 350px;
+            padding: 1.5rem;
+            background: rgba(40, 40, 42, 0.8);
+            border: 2px solid #888;
+            backdrop-filter: blur(10px);
+            border-radius: 10px;
+            transition: border-color 0.4s ease;
+        }
+        .info-panel h2 { margin-top: 0; font-size: 1.8rem; }
+        .info-panel p { font-size: 1.1rem; line-height: 1.6; }
+
+        /* --- Ejes y Ticks en 3D --- */
+        .axis-label, .tick { position: absolute; color: #ccc; background: #00000099; padding: 2px 5px; border-radius: 3px; }
+        .y-axis-label { transform: rotate(-90deg) translateZ(5px); left: -110px; top: 250px; }
+        .x-axis-label { transform: translateZ(5px); bottom: -40px; left: 50%; transform: translateX(-50%); }
+        .y-tick { left: -30px; transform: translateZ(5px); }
+        .x-tick { bottom: -30px; transform: translateZ(5px); }
+        .p-5 {top: 8.33%;} .p-4 {top: 25%;} .p-3 {top: 41.66%;} .p-2 {top: 58.33%;} .p-1 {top: 75%;} .p-0 {top: 91.66%;}
+        .p-0x {left: 8.33%;} .p-1x {left: 25%;} .p-2x {left: 41.66%;} .p-3x {left: 58.33%;} .p-4x {left: 75%;} .p-5x {left: 91.66%;}
+
+    </style>
+</head>
+<body>
+
+    <main>
+        <div class="scene">
+            <div class="chart-container" id="chart">
+                <div class="grid-surface"></div>
+                
+                <!-- Ejes -->
+                <div class="axis-label y-axis-label">Number of time dimensions</div>
+                <div class="axis-label x-axis-label">Number of spatial dimensions</div>
+                <div class="tick y-tick p-5">5</div> <div class="tick y-tick p-4">4</div> <div class="tick y-tick p-3">3</div> <div class="tick y-tick p-2">2</div> <div class="tick y-tick p-1">1</div> <div class="tick y-tick p-0">0</div>
+                <div class="tick x-tick p-0x">0</div> <div class="tick x-tick p-1x">1</div> <div class="tick x-tick p-2x">2</div> <div class="tick x-tick p-3x">3</div> <div class="tick x-tick p-4x">4</div> <div class="tick x-tick p-5x">5</div>
+
+                <!-- Regiones -->
+                <div class="region elliptic-v" data-title="UNPREDICTABLE (elliptic)" data-info="Con 0 dimensiones espaciales, el tiempo es un bucle. El futuro y el pasado son indistinguibles. La predicción no tiene sentido; todo ya ha sucedido y volverá a suceder." data-type="elliptic"><span>UNPREDICTABLE<br/>(elliptic)</span></div>
+                <div class="region elliptic-h" data-title="UNPREDICTABLE (elliptic)" data-info="Con 0 dimensiones temporales, no hay cambio. El universo es una fotografía estática. La predicción es trivialmente imposible porque no hay 'después'." data-type="elliptic"></div>
+                
+                <div class="region unstable-v" data-title="UNSTABLE" data-info="En 1D espacial y >3D temporales, los átomos son inestables y la materia no puede formarse. Un universo que se desintegra al nacer." data-type="unstable"><span>UNSTABLE</span></div>
+                <div class="region ultrahyperbolic" data-title="UNPREDICTABLE (ultrahyperbolic)" data-info="Con múltiples dimensiones temporales, cada momento se ramifica en infinitos futuros. Las señales se propagan en hiperconos de luz, haciendo la causalidad un laberinto. La realidad es un fractal de posibilidades." data-type="ultrahyperbolic"><span>UNPREDICTABLE<br/>(ultrahyperbolic)</span></div>
+                
+                <div class="region tachyons" data-title="Tachyons only" data-info="En este universo (1D espacial, 3D temporal), solo existen los taquiones, partículas que viajan más rápido que la luz y se mueven hacia atrás en el tiempo. La causalidad es una sugerencia." data-type="tachyons"><span>Tachyons<br/>only</span></div>
+                
+                <div class="region simple" data-title="TOO SIMPLE" data-info="En 1 o 2 dimensiones espaciales, las leyes físicas son demasiado simples para la complejidad. No hay gravedad estable en 2D, y en 1D, no puedes moverte sin chocar." data-type="simple"><span>TOO<br/>SIMPLE</span></div>
+                
+                <div class="region we-are-here" data-title="We are here" data-info="El punto justo. 3D espaciales y 1D temporal permiten una física lo suficientemente rica para la vida, pero lo suficientemente estable para que el universo no colapse. Nuestro hogar." data-type="we-are-here"><span>We are<br/>here</span></div>
+                <div class="region unstable-h" data-title="UNSTABLE" data-info="Con >3 dimensiones espaciales, las órbitas planetarias y atómicas son inestables. Todo se desmoronaría en una espiral hacia el centro o se escaparía al infinito." data-type="unstable"></div>
+            </div>
+        </div>
+
+        <div class="info-panel" id="info-panel">
+            <h2 id="info-title">Visualizador Dimensional</h2>
+            <p id="info-text">Pasa el ratón sobre una región para explorarla. Pasa el ratón sobre el gráfico para aplanarlo y verlo de frente.</p>
+        </div>
+    </main>
+
+    <script>
+        const chart = document.getElementById('chart');
+        const infoPanel = document.getElementById('info-panel');
+        const infoTitle = document.getElementById('info-title');
+        const infoText = document.getElementById('info-text');
+        
+        const defaultTitle = 'Visualizador Dimensional';
+        const defaultText = 'Pasa el ratón sobre una región para explorarla. Pasa el ratón sobre el gráfico para aplanarlo y verlo de frente.';
+
+        chart.addEventListener('mouseover', (event) => {
+            const region = event.target.closest('.region');
+            if (region && region.dataset.title) {
+                infoTitle.textContent = region.dataset.title;
+                infoText.textContent = region.dataset.info;
+                infoPanel.style.borderColor = `var(--color-${region.dataset.type})`;
+            }
+        });
+
+        chart.addEventListener('mouseleave', () => {
+            infoTitle.textContent = defaultTitle;
+            infoText.textContent = defaultText;
+            infoPanel.style.borderColor = '#888';
+        });
+    </script>
+
+</body>
+</html>
